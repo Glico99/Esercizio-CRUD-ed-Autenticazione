@@ -4,30 +4,39 @@ namespace App\Http\Controllers;
 
 use App\Models\User;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Hash;
 
 class AuthController extends Controller
 {
-    public function register(){
+    //REGISTER METHODS
+    public function register()
+    {
         return view('auth.register');
     }
 
-    public function store(){
+    public function store()
+    {
         $validated = request()->validate([
             'name' => 'required|min:3|max:15',
             'email' => 'required|email|unique:users,email',
             'password' => 'required|confirmed|min:8',
         ]);
 
-        User::create([
+        $user = User::create([
             'name' => $validated['name'],
             'email' => $validated['email'],
-            'password' =>Hash::make($validated['password'])
+            'password' => Hash::make($validated['password']),
         ]);
 
-        return redirect()->route('showDashboard')->with('success','User Created!');
+        Auth::login($user);
+
+        $success = 'User Created! Feel free to share your ideas and enjoy other people\' s content! ';
+
+        return redirect()->route('showDashboard')->with('success', $success);
     }
 
+    //LOGIN METHODS
     public function login()
     {
         return view('auth.login');
@@ -40,19 +49,21 @@ class AuthController extends Controller
             'password' => 'required|min:8',
         ]);
 
-        if(auth()->attempt($validated)){
-
+        if (auth()->attempt($validated)) {
             request()->session()->regenerate();
 
-            return redirect()->route('showDashboard')->with('success','Logged in Successfully!');
+            return redirect()->route('showDashboard')->with('success', 'Logged in Successfully!');
+        } else {
+            return redirect()->route('loginUser')->withErrors([
+                    'email' => 'wrong email',
+                    'password' => 'wrong password',
+                ]);
         }
-
-        return redirect()->route('showDashboard')->withErrors([
-            'email' => 'email errata'
-        ]);
     }
 
-    public function logout(){
+    //LOGOUT MEHTODS
+    public function logout()
+    {
         auth()->logout();
 
         request()->session()->invalidate();
